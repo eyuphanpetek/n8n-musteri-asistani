@@ -10,6 +10,7 @@
       --positive: #0f9d58;
       --negative: #db4437;
       --neutral: #f4b400;
+      --warning: #d32f2f;
     }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -64,6 +65,7 @@
       text-align: center;
       color: var(--primary);
       font-weight: bold;
+      font-size: 1.1em;
     }
     .spinner {
       display: inline-block;
@@ -84,7 +86,17 @@
       margin: 16px 0 0;
       border-left: 5px solid var(--primary);
       font-style: normal;
+      line-height: 1.6;
     }
+
+    .inappropriate-box {
+      background: #ffebee;
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 6px solid var(--warning);
+      text-align: center;
+    }
+
     @media (max-width: 600px) {
       body { padding: 15px; margin: 20px auto; }
       button { width: 100%; }
@@ -92,12 +104,11 @@
   </style>
 </head>
 <body>
-
   <h1>Akıllı Müşteri İçgörü Asistanı</h1>
   <p>Müşteri yorumunu yaz, anında duygu analizi + cevap önerisi al!</p>
 
   <textarea id="review" placeholder="Örn: Siparişim hiç gelmedi, çok sinirliyim..."></textarea>
-  <button id="analyzeBtn" onclick="analyze()">Analiz Et →</button>
+  <button id="analyzeBtn" onclick="analyze()">Analiz Et</button>
 
   <div id="result" class="result"></div>
 
@@ -109,7 +120,7 @@
       const resultDiv = document.getElementById('result');
       const btn = document.getElementById('analyzeBtn');
       
-      // UI: Loading
+      // Loading
       btn.disabled = true;
       resultDiv.innerHTML = `
         <div class="loader">
@@ -134,22 +145,36 @@
 
         const data = JSON.parse(text);
 
-        const sentiment = (data.sentiment || 'neutral').toLowerCase();
-        const color = sentiment === 'positive' ? 'var(--positive)' : 
-                     sentiment === 'negative' ? 'var(--negative)' : 'var(--neutral)';
+        if (data.sentiment === 'inappropriate') {
+          resultDiv.innerHTML = `
+            <div class="inappropriate-box">
+              <h3 style="color: var(--warning); margin: 0 0 12px 0;">Uyarı: Uygunsuz İçerik Tespit Edildi</h3>
+              <p style="margin: 0; font-size: 16px;">
+                ${data.suggested_reply || 'Mesajınız içerik kurallarımıza uymamaktadır. Lütfen uygun bir şekilde yazınız.'}
+              </p>
+            </div>
+          `;
+        } 
+        else {
+          const sentiment = (data.sentiment || 'neutral').toLowerCase();
+          const color = sentiment === 'positive' ? 'var(--positive)' : 
+                       sentiment === 'negative' ? 'var(--negative)' : 'var(--neutral)';
 
-        resultDiv.innerHTML = `
-          <h3>Analiz Sonucu</h3>
-          <p><strong>Duygu:</strong> 
-            <span style="color:${color}; font-weight:bold;">
-              ${sentiment.toUpperCase()}
-            </span> 
-            (<strong>${data.sentiment_score || '?'} / 100</strong>)
-          </p>
-          <p><strong>Özet:</strong> ${data.summary || '—'}</p>
-          <p><strong>Önerilen Cevap:</strong></p>
-          <blockquote>${data.suggested_reply || '—'}</blockquote>
-        `;
+          resultDiv.innerHTML = `
+            <h3>Analiz Sonucu</h3>
+            <p><strong>Duygu:</strong> 
+              <span style="color:${color}; font-weight:bold; font-size:1.1em;">
+                ${sentiment.toUpperCase()}
+              </span>
+              <strong> (${data.sentiment_score || '?'} / 100)</strong>
+            </p>
+            <p><strong>Özet:</strong> ${data.summary || '—'}</p>
+            <p><strong>Önerilen Cevap:</strong></p>
+            <blockquote style="border-left-color:${color};">
+              ${data.suggested_reply || '—'}
+            </blockquote>
+          `;
+        }
 
       } catch (err) {
         resultDiv.innerHTML = `<p style="color: red; font-weight: bold;">Hata: ${err.message}</p>`;
